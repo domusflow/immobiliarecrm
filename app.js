@@ -1,28 +1,28 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyYbaHrglaE0oRGEiRaCfGEjRcRtowwTK2TFYD74oxxIs0q65X23LZWX0t0gV0CZ_sM/exec";
 
-let session = { token:null, username:null, ruolo:null };
+let session = { token: null, username: null, ruolo: null };
 
-const $ = (id)=>document.getElementById(id);
-function show(el,on=true){ el.classList.toggle("hidden", !on); }
-function setMsg(id, txt){ $(id).textContent = txt || ""; }
-function esc(s){
+const $ = (id) => document.getElementById(id);
+function show(el, on = true) { el.classList.toggle("hidden", !on); }
+function setMsg(id, txt) { $(id).textContent = txt || ""; }
+function esc(s) {
   return String(s ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
 async function api(action, data = {}) {
   const form = new URLSearchParams();
   form.set("action", action);
   if (session.token) form.set("token", session.token);
-  Object.entries(data).forEach(([k,v])=>{
-    if (v===undefined || v===null) return;
+  Object.entries(data).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
     form.set(k, String(v));
   });
 
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
     body: form.toString()
   });
 
@@ -32,31 +32,31 @@ async function api(action, data = {}) {
 }
 
 /** Tabs */
-document.querySelectorAll(".tab").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     const t = btn.dataset.tab;
-    ["clienti","immobili"].forEach(x=> show($("tab-"+x), x===t));
+    ["clienti", "immobili"].forEach(x => show($("tab-" + x), x === t));
   });
 });
 
 /** Modal */
-function modalOpen(title, bodyHtml, actionsHtml=""){
+function modalOpen(title, bodyHtml, actionsHtml = "") {
   $("modalTitle").textContent = title;
   $("modalBody").innerHTML = bodyHtml;
   $("modalActions").innerHTML = actionsHtml;
   $("modalMsg").textContent = "";
   show($("modal"), true);
 }
-function modalClose(){ show($("modal"), false); }
+function modalClose() { show($("modal"), false); }
 $("btnModalClose").onclick = modalClose;
-$("modal").addEventListener("click",(e)=>{ if(e.target.id==="modal") modalClose(); });
+$("modal").addEventListener("click", (e) => { if (e.target.id === "modal") modalClose(); });
 
 /** LOGIN */
-$("btnLogin").onclick = async ()=>{
+$("btnLogin").onclick = async () => {
   setMsg("loginMsg", "Accesso...");
-  try{
+  try {
     const username = $("loginUser").value.trim();
     const password = $("loginPass").value;
     const data = await api("login", { username, password });
@@ -72,13 +72,13 @@ $("btnLogin").onclick = async ()=>{
     await refreshClienti();
     await refreshImmobili();
     setMsg("loginMsg", "");
-  }catch(e){
+  } catch (e) {
     setMsg("loginMsg", e.message);
   }
 };
 
-$("btnLogout").onclick = ()=>{
-  session = { token:null, username:null, ruolo:null };
+$("btnLogout").onclick = () => {
+  session = { token: null, username: null, ruolo: null };
   $("whoami").textContent = "";
   show($("btnLogout"), false);
   show($("viewApp"), false);
@@ -90,16 +90,16 @@ $("btnLogout").onclick = ()=>{
  * ========================= */
 $("btnSearchClienti").onclick = refreshClienti;
 
-async function refreshClienti(){
+async function refreshClienti() {
   const q = $("qCliente").value.trim();
   const tipo = $("tipoCliente").value.trim();
   const rows = await api("searchClienti", { q, tipo });
   const tb = $("tblClienti").querySelector("tbody");
   tb.innerHTML = "";
-  rows.forEach(r=>{
-    const res = [
-      r.RESIDENZA_INDIRIZZO, r.RESIDENZA_CAP, r.RESIDENZA_CITTA, r.RESIDENZA_PROVINCIA
-    ].filter(Boolean).join(" ");
+
+  rows.forEach(r => {
+    const res = [r.RESIDENZA_INDIRIZZO, r.RESIDENZA_CAP, r.RESIDENZA_CITTA, r.RESIDENZA_PROVINCIA]
+      .filter(Boolean).join(" ");
 
     const immCount = Number(r.IMMOBILI_COUNT || 0);
 
@@ -112,22 +112,21 @@ async function refreshClienti(){
       <td>${esc(r.TELEFONO)}</td>
       <td>${esc(r.EMAIL)}</td>
       <td class="small">${esc(res)}</td>
-      <td>${immCount ? `<span class="badge">Immobili: ${immCount}</span>` : `<span class="badge">Immobili: 0</span>`}</td>
+      <td><span class="badge">Immobili: ${immCount}</span></td>
       <td>${esc(r.OWNER_AGENT)}</td>
       <td class="actions">
         <button class="btn btn-ghost" data-act="edit">Modifica</button>
         <button class="btn btn-ghost" data-act="addAct">+ Attività</button>
         <button class="btn btn-ghost" data-act="viewAct">Vedi attività</button>
         <button class="btn btn-ghost" data-act="props">Vedi immobili</button>
-      </td>`;
-    tr.querySelectorAll("button").forEach(b=>{
-      b.addEventListener("click", ()=> onClienteAction(b.dataset.act, r));
-    });
+      </td>
+    `;
+    tr.querySelectorAll("button").forEach(b => b.addEventListener("click", () => onClienteAction(b.dataset.act, r)));
     tb.appendChild(tr);
   });
 }
 
-$("btnOpenAddCliente").onclick = ()=>{
+$("btnOpenAddCliente").onclick = () => {
   modalOpen("Aggiungi Cliente", `
     <div class="grid2">
       <label>Tipo
@@ -159,9 +158,10 @@ $("btnOpenAddCliente").onclick = ()=>{
 
     <label>Note <textarea id="mNote"></textarea></label>
   `, `<button id="mSave" class="btn">Salva</button>`);
-  $("mSave").onclick = async ()=>{
-    try{
-      $("modalMsg").textContent="Salvataggio...";
+
+  $("mSave").onclick = async () => {
+    try {
+      $("modalMsg").textContent = "Salvataggio...";
       await api("addCliente", {
         tipoCliente: $("mTipoCliente").value,
         owner: $("mOwner").value,
@@ -177,28 +177,30 @@ $("btnOpenAddCliente").onclick = ()=>{
         resProvincia: $("rProv").value,
         note: $("mNote").value
       });
-      $("modalMsg").textContent="OK ✅";
+      $("modalMsg").textContent = "OK ✅";
       await refreshClienti();
       setTimeout(modalClose, 350);
-    }catch(e){ $("modalMsg").textContent=e.message; }
+    } catch (e) {
+      $("modalMsg").textContent = e.message;
+    }
   };
 };
 
 let currentClienteId = null;
 
-async function onClienteAction(act, row){
-  if (act==="viewAct"){
+async function onClienteAction(act, row) {
+  if (act === "viewAct") {
     currentClienteId = row.ID_CLIENTE;
     $("clienteActTitle").textContent = `Attività Cliente — ${row.NOME} ${row.COGNOME} (${row.ID_CLIENTE})`;
     show($("clienteActivities"), true);
     show($("clienteImmobiliBox"), false);
     await refreshActClienti();
   }
-  if (act==="addAct"){
+  if (act === "addAct") {
     currentClienteId = row.ID_CLIENTE;
     openAddActCliente(row.ID_CLIENTE);
   }
-  if (act==="edit"){
+  if (act === "edit") {
     modalOpen("Modifica Cliente (base)", `
       <div class="grid2">
         <label>Telefono <input id="eTel" value="${esc(row.TELEFONO)}"/></label>
@@ -206,16 +208,17 @@ async function onClienteAction(act, row){
         <label>Owner <input id="eOwner" value="${esc(row.OWNER_AGENT)}"/></label>
         <label>Zona <input id="eZona" value="${esc(row.ZONA)}"/></label>
 
-        <label>Residenza indirizzo <input id="eRInd" value="${esc(row.RESIDENZA_INDIRIZZO||"")}"/></label>
-        <label>Residenza CAP <input id="eRCap" value="${esc(row.RESIDENZA_CAP||"")}"/></label>
-        <label>Residenza città <input id="eRCitta" value="${esc(row.RESIDENZA_CITTA||"")}"/></label>
-        <label>Residenza provincia <input id="eRProv" value="${esc(row.RESIDENZA_PROVINCIA||"")}"/></label>
+        <label>Residenza indirizzo <input id="eRInd" value="${esc(row.RESIDENZA_INDIRIZZO || "")}"/></label>
+        <label>Residenza CAP <input id="eRCap" value="${esc(row.RESIDENZA_CAP || "")}"/></label>
+        <label>Residenza città <input id="eRCitta" value="${esc(row.RESIDENZA_CITTA || "")}"/></label>
+        <label>Residenza provincia <input id="eRProv" value="${esc(row.RESIDENZA_PROVINCIA || "")}"/></label>
       </div>
-      <label>Note <textarea id="eNote">${esc(row.NOTE)}</textarea></label>
+      <label>Note <textarea id="eNote">${esc(row.NOTE || "")}</textarea></label>
     `, `<button id="eSave" class="btn">Salva</button>`);
-    $("eSave").onclick = async ()=>{
-      try{
-        $("modalMsg").textContent="Salvataggio...";
+
+    $("eSave").onclick = async () => {
+      try {
+        $("modalMsg").textContent = "Salvataggio...";
         await api("updateClienteBase", {
           idCliente: row.ID_CLIENTE,
           telefono: $("eTel").value,
@@ -228,13 +231,15 @@ async function onClienteAction(act, row){
           resProvincia: $("eRProv").value,
           note: $("eNote").value
         });
-        $("modalMsg").textContent="OK ✅";
+        $("modalMsg").textContent = "OK ✅";
         await refreshClienti();
         setTimeout(modalClose, 350);
-      }catch(e){ $("modalMsg").textContent=e.message; }
+      } catch (e) {
+        $("modalMsg").textContent = e.message;
+      }
     };
   }
-  if (act==="props"){
+  if (act === "props") {
     currentClienteId = row.ID_CLIENTE;
     show($("clienteActivities"), true);
     show($("clienteImmobiliBox"), true);
@@ -243,15 +248,15 @@ async function onClienteAction(act, row){
   }
 }
 
-$("btnCloseClienteAct").onclick = ()=> show($("clienteActivities"), false);
-$("btnCloseClienteImmobili").onclick = ()=> show($("clienteImmobiliBox"), false);
-$("btnAddActCliente").onclick = ()=> openAddActCliente(currentClienteId);
+$("btnCloseClienteAct").onclick = () => show($("clienteActivities"), false);
+$("btnCloseClienteImmobili").onclick = () => show($("clienteImmobiliBox"), false);
+$("btnAddActCliente").onclick = () => openAddActCliente(currentClienteId);
 
-async function refreshActClienti(){
+async function refreshActClienti() {
   const rows = await api("listAttivitaCliente", { idCliente: currentClienteId });
   const tb = $("tblActClienti").querySelector("tbody");
   tb.innerHTML = "";
-  rows.forEach(r=>{
+  rows.forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.ID_ATTIVITA)}</td>
@@ -265,11 +270,11 @@ async function refreshActClienti(){
   });
 }
 
-async function refreshClienteImmobili(idCliente){
+async function refreshClienteImmobili(idCliente) {
   const rows = await api("listImmobiliByCliente", { idCliente });
   const tb = $("tblClienteImmobili").querySelector("tbody");
   tb.innerHTML = "";
-  rows.forEach(r=>{
+  rows.forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.ID_IMMOBILE)}</td>
@@ -283,7 +288,7 @@ async function refreshClienteImmobili(idCliente){
   });
 }
 
-function openAddActCliente(idCliente){
+function openAddActCliente(idCliente) {
   modalOpen("Aggiungi Attività Cliente", `
     <p class="muted">Cliente: <b>${esc(idCliente)}</b></p>
     <div class="grid2">
@@ -299,9 +304,10 @@ function openAddActCliente(idCliente){
     </div>
     <label>Note <textarea id="aNote"></textarea></label>
   `, `<button id="aSave" class="btn">Salva</button>`);
-  $("aSave").onclick = async ()=>{
-    try{
-      $("modalMsg").textContent="Salvataggio...";
+
+  $("aSave").onclick = async () => {
+    try {
+      $("modalMsg").textContent = "Salvataggio...";
       await api("addAttivitaCliente", {
         idCliente,
         tipoAttivita: $("aTipo").value,
@@ -310,24 +316,28 @@ function openAddActCliente(idCliente){
         ora: $("aOra").value,
         note: $("aNote").value
       });
-      $("modalMsg").textContent="OK ✅";
-      if (currentClienteId===idCliente) await refreshActClienti();
+      $("modalMsg").textContent = "OK ✅";
+      if (currentClienteId === idCliente) await refreshActClienti();
       setTimeout(modalClose, 350);
-    }catch(e){ $("modalMsg").textContent=e.message; }
+    } catch (e) {
+      $("modalMsg").textContent = e.message;
+    }
   };
 }
+
 /** =========================
  * IMMOBILI
  * ========================= */
 $("btnSearchImmobili").onclick = refreshImmobili;
 
-async function refreshImmobili(){
+async function refreshImmobili() {
   const q = $("qImmobile").value.trim();
   const tipo = $("tipoImmobile").value.trim();
   const rows = await api("searchImmobili", { q, tipo });
   const tb = $("tblImmobili").querySelector("tbody");
   tb.innerHTML = "";
-  rows.forEach(r=>{
+
+  rows.forEach(r => {
     const owners = (r.PROPRIETARI_NOMI || "").trim() || "-";
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -346,29 +356,24 @@ async function refreshImmobili(){
         <button class="btn btn-ghost" data-act="addAct">+ Attività</button>
         <button class="btn btn-ghost" data-act="viewAct">Vedi attività</button>
       </td>`;
-    tr.querySelectorAll("button").forEach(b=>{
-      b.addEventListener("click", ()=> onImmobileAction(b.dataset.act, r));
-    });
+    tr.querySelectorAll("button").forEach(b => b.addEventListener("click", () => onImmobileAction(b.dataset.act, r)));
     tb.appendChild(tr);
   });
 }
 
 let selectedOwners = []; // [{id, nome, cognome}]
-function ownersSummary(){
+function ownersSummary() {
   if (!selectedOwners.length) return "-";
-  return selectedOwners.map(o=>`${o.nome} ${o.cognome}`.trim()).filter(Boolean).join(", ");
+  return selectedOwners.map(o => `${o.nome} ${o.cognome}`.trim()).filter(Boolean).join(", ");
 }
 
-/**
- * Widget proprietari DENTRO la modal immobile (NO popup separato)
- */
+/** widget proprietari dentro form immobile */
 function renderOwnersUI(containerId, summaryId) {
   const box = document.getElementById(containerId);
   const summary = document.getElementById(summaryId);
 
   function refreshSelected() {
     summary.textContent = ownersSummary();
-
     const chips = box.querySelector(".ownerChips");
     chips.innerHTML = "";
     if (!selectedOwners.length) {
@@ -411,7 +416,6 @@ function renderOwnersUI(containerId, summaryId) {
         const id = String(r.ID_CLIENTE).trim();
         if (!id) { $("modalMsg").textContent = "Cliente senza ID."; return; }
         if (selectedOwners.some(x => String(x.id).trim() === id)) { $("modalMsg").textContent = "Già selezionato."; return; }
-
         selectedOwners.push({ id, nome: r.NOME || "", cognome: r.COGNOME || "" });
         $("modalMsg").textContent = "Aggiunto ✅";
         refreshSelected();
@@ -421,15 +425,13 @@ function renderOwnersUI(containerId, summaryId) {
   }
 
   box.querySelector(".ownerSearchBtn").onclick = doSearch;
-
-  // prima ricerca vuota
   doSearch();
   refreshSelected();
 }
 
 /** Aggiungi immobile */
-$("btnOpenAddImmobile").onclick = ()=>{
-  selectedOwners = []; // reset
+$("btnOpenAddImmobile").onclick = () => {
+  selectedOwners = [];
   modalOpen("Aggiungi Immobile", `
     <div class="grid2">
       <label>Tipo
@@ -466,12 +468,10 @@ $("btnOpenAddImmobile").onclick = ()=>{
 
     <div class="card subtle" style="margin-top:12px" id="ownersBoxAdd">
       <h3 style="margin:0 0 10px 0">Proprietari (max 5)</h3>
-
       <div class="filters">
         <input class="ownerQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
         <button class="btn btn-ghost ownerSearchBtn" type="button">Cerca</button>
       </div>
-
       <p class="muted">Selezionati: <span id="ownSummary">-</span></p>
       <div class="row ownerChips"></div>
 
@@ -488,10 +488,10 @@ $("btnOpenAddImmobile").onclick = ()=>{
 
   renderOwnersUI("ownersBoxAdd", "ownSummary");
 
-  $("imSave").onclick = async ()=>{
-    try{
-      $("modalMsg").textContent="Salvataggio...";
-      const owners = selectedOwners.map(o=>o.id);
+  $("imSave").onclick = async () => {
+    try {
+      $("modalMsg").textContent = "Salvataggio...";
+      const owners = selectedOwners.map(o => o.id);
 
       await api("addImmobile", {
         tipoImmobile: $("imTipo").value,
@@ -512,18 +512,19 @@ $("btnOpenAddImmobile").onclick = ()=>{
         note: $("imNote").value
       });
 
-      $("modalMsg").textContent="OK ✅";
+      $("modalMsg").textContent = "OK ✅";
       await refreshImmobili();
       setTimeout(modalClose, 350);
-    }catch(e){ $("modalMsg").textContent=e.message; }
+    } catch (e) {
+      $("modalMsg").textContent = e.message;
+    }
   };
 };
 
 let currentImmobileId = null;
 
-/** Azioni riga immobile */
-async function onImmobileAction(act, row){
-  if (act==="owners"){
+async function onImmobileAction(act, row) {
+  if (act === "owners") {
     modalOpen("Proprietari immobile", `
       <p><b>Immobile:</b> ${esc(row.ID_IMMOBILE)} - ${esc(row.INDIRIZZO)}</p>
       <p><b>Proprietari:</b> ${esc(row.PROPRIETARI_NOMI || "-")}</p>
@@ -532,10 +533,9 @@ async function onImmobileAction(act, row){
     return;
   }
 
-  if (act==="edit"){
-    // carica proprietari dal backend (se presenti)
+  if (act === "edit") {
     selectedOwners = Array.isArray(row.PROPRIETARI_LIST)
-      ? row.PROPRIETARI_LIST.map(o=>({id:o.id, nome:o.nome, cognome:o.cognome}))
+      ? row.PROPRIETARI_LIST.map(o => ({ id: o.id, nome: o.nome, cognome: o.cognome }))
       : [];
 
     modalOpen("Modifica Immobile", `
@@ -543,29 +543,27 @@ async function onImmobileAction(act, row){
         <label>Responsabile <input id="ieResp" value="${esc(row.RESPONSABILE)}"/></label>
         <label>Zona <input id="ieZona" value="${esc(row.ZONA)}"/></label>
 
-        <label>Provincia <input id="ieProv" value="${esc(row.PROVINCIA||"")}"/></label>
+        <label>Provincia <input id="ieProv" value="${esc(row.PROVINCIA || "")}"/></label>
 
         <label>Tipologia
           <select id="ieTipo">
-            <option ${row.TIPOLOGIA==="Casa"?"selected":""}>Casa</option>
-            <option ${row.TIPOLOGIA==="Appartamento"?"selected":""}>Appartamento</option>
-            <option ${row.TIPOLOGIA==="Terreno"?"selected":""}>Terreno</option>
-            <option ${row.TIPOLOGIA==="Rustico"?"selected":""}>Rustico</option>
-            <option ${row.TIPOLOGIA==="Palazzina"?"selected":""}>Palazzina</option>
+            <option ${row.TIPOLOGIA === "Casa" ? "selected" : ""}>Casa</option>
+            <option ${row.TIPOLOGIA === "Appartamento" ? "selected" : ""}>Appartamento</option>
+            <option ${row.TIPOLOGIA === "Terreno" ? "selected" : ""}>Terreno</option>
+            <option ${row.TIPOLOGIA === "Rustico" ? "selected" : ""}>Rustico</option>
+            <option ${row.TIPOLOGIA === "Palazzina" ? "selected" : ""}>Palazzina</option>
           </select>
         </label>
 
-        <label>Dati catastali <input id="ieCat" value="${esc(row.DATI_CATASTALI||"")}"/></label>
+        <label>Dati catastali <input id="ieCat" value="${esc(row.DATI_CATASTALI || "")}"/></label>
       </div>
 
       <div class="card subtle" style="margin-top:12px" id="ownersBoxEdit">
         <h3 style="margin:0 0 10px 0">Proprietari (max 5)</h3>
-
         <div class="filters">
           <input class="ownerQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
           <button class="btn btn-ghost ownerSearchBtn" type="button">Cerca</button>
         </div>
-
         <p class="muted">Selezionati: <span id="ownSummary2">-</span></p>
         <div class="row ownerChips"></div>
 
@@ -577,17 +575,16 @@ async function onImmobileAction(act, row){
         </div>
       </div>
 
-      <label>Note <textarea id="ieNote">${esc(row.NOTE_IMMOBILE||"")}</textarea></label>
+      <label>Note <textarea id="ieNote">${esc(row.NOTE_IMMOBILE || "")}</textarea></label>
     `, `<button id="ieSave" class="btn">Salva</button>`);
 
     renderOwnersUI("ownersBoxEdit", "ownSummary2");
-    // aggiorna summary con i proprietari già caricati
     document.getElementById("ownSummary2").textContent = ownersSummary();
 
-    $("ieSave").onclick = async ()=>{
-      try{
-        $("modalMsg").textContent="Salvataggio...";
-        const owners = selectedOwners.map(o=>o.id);
+    $("ieSave").onclick = async () => {
+      try {
+        $("modalMsg").textContent = "Salvataggio...";
+        const owners = selectedOwners.map(o => o.id);
 
         await api("updateImmobileBase", {
           idImmobile: row.ID_IMMOBILE,
@@ -606,25 +603,88 @@ async function onImmobileAction(act, row){
           note: $("ieNote").value
         });
 
-        $("modalMsg").textContent="OK ✅";
+        $("modalMsg").textContent = "OK ✅";
         await refreshImmobili();
         setTimeout(modalClose, 350);
-      }catch(e){ $("modalMsg").textContent=e.message; }
+      } catch (e) {
+        $("modalMsg").textContent = e.message;
+      }
     };
     return;
   }
 
-  // attività (le tue funzioni esistenti)
-  if (act==="viewAct"){
+  // attività
+  if (act === "viewAct") {
     currentImmobileId = row.ID_IMMOBILE;
     $("immobileActTitle").textContent = `Attività Immobile — ${row.INDIRIZZO} (${row.ID_IMMOBILE})`;
     show($("immobileActivities"), true);
     await refreshActImmobili();
     return;
   }
-  if (act==="addAct"){
+  if (act === "addAct") {
     currentImmobileId = row.ID_IMMOBILE;
     openAddActImmobile(row.ID_IMMOBILE);
     return;
   }
+}
+
+/** =========================
+ * ATTIVITA IMMOBILI (già nel tuo index.html)
+ * ========================= */
+$("btnCloseImmobileAct").onclick = () => show($("immobileActivities"), false);
+$("btnAddActImmobile").onclick = () => openAddActImmobile(currentImmobileId);
+
+async function refreshActImmobili() {
+  const rows = await api("listAttivitaImmobile", { idImmobile: currentImmobileId });
+  const tb = $("tblActImmobili").querySelector("tbody");
+  tb.innerHTML = "";
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.ID_ATTIVITA)}</td>
+      <td>${esc(r.TIPO_ATTIVITA)}</td>
+      <td>${esc(r.ESITO)}</td>
+      <td>${esc(r.DATA)}</td>
+      <td>${esc(r.ORA)}</td>
+      <td>${esc(r.AGENTE)}</td>
+      <td>${esc(r.NOTE)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function openAddActImmobile(idImmobile) {
+  modalOpen("Aggiungi Attività Immobile", `
+    <p class="muted">Immobile: <b>${esc(idImmobile)}</b></p>
+    <div class="grid2">
+      <label>Tipo
+        <select id="iaTipo">
+          <option>Sopralluogo</option><option>Telefonata proprietario</option><option>Verifica documenti</option>
+          <option>Foto</option><option>Visita cliente</option><option>Altro</option>
+        </select>
+      </label>
+      <label>Esito <input id="iaEsito" /></label>
+      <label>Data <input id="iaData" type="date"/></label>
+      <label>Ora <input id="iaOra" type="time"/></label>
+    </div>
+    <label>Note <textarea id="iaNote"></textarea></label>
+  `, `<button id="iaSave" class="btn">Salva</button>`);
+
+  $("iaSave").onclick = async () => {
+    try {
+      $("modalMsg").textContent = "Salvataggio...";
+      await api("addAttivitaImmobile", {
+        idImmobile,
+        tipoAttivita: $("iaTipo").value,
+        esito: $("iaEsito").value,
+        data: $("iaData").value,
+        ora: $("iaOra").value,
+        note: $("iaNote").value
+      });
+      $("modalMsg").textContent = "OK ✅";
+      if (currentImmobileId === idImmobile) await refreshActImmobili();
+      setTimeout(modalClose, 350);
+    } catch (e) {
+      $("modalMsg").textContent = e.message;
+    }
+  };
 }
