@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/a/macros/domusflowimmobiliare.com/s/AKfycbxdSeuCRzY-V4ySFbIj2NluLdfULNZo1boTBzPYBf5Oq6wwYiLLHUeS1uOZBZ7v2iF4/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyYbaHrglaE0oRGEiRaCfGEjRcRtowwTK2TFYD74oxxIs0q65X23LZWX0t0gV0CZ_sM/exec";
 
 let session = { token:null, username:null, ruolo:null };
 
