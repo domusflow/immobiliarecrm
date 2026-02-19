@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRM Immobiliare</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">CRM Immobiliare</div>
+    <div class="right">
+      <span id="whoami" class="muted"></span>
+      <button id="btnLogout" class="btn btn-ghost hidden">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- LOGIN -->
+    <section id="viewLogin" class="card">
+      <h1>Login</h1>
+      <p class="muted">Accedi con le credenziali nel foglio UTENTI (USERNAME / PASSWORD_HASH).</p>
+
+      <div class="grid2">
+        <label>Username
+          <input id="loginUser" autocomplete="username" />
+        </label>
+        <label>Password
+          <input id="loginPass" type="password" autocomplete="current-password" />
+        </label>
+      </div>
+
+      <div class="row">
+        <button id="btnLogin" class="btn">Entra</button>
+        <span id="loginMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <!-- APP -->
+    <section id="viewApp" class="hidden">
+      <nav class="tabs">
+        <button class="tab active" data-tab="clienti">Clienti</button>
+        <button class="tab" data-tab="immobili">Immobili</button>
+        <button class="tab" data-tab="calendario">Calendario</button>
+      </nav>
+
+      <!-- CLIENTI -->
+      <section id="tab-clienti" class="tabpanel card">
+        <div class="panelHead">
+          <h2>Clienti</h2>
+          <button id="btnOpenAddCliente" class="btn">+ Aggiungi Cliente</button>
+        </div>
+
+        <div class="filters">
+          <input id="qCliente" placeholder="Cerca (nome, cognome, telefono, email)..." />
+          <select id="tipoCliente">
+            <option value="">Tutti i tipi</option>
+            <option>Generale</option>
+            <option>Informatore</option>
+            <option>Partner</option>
+          </select>
+          <button id="btnSearchClienti" class="btn btn-ghost">Ricerca</button>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="tblClienti">
+            <thead>
+              <tr>
+                <th>ID</th><th>Tipo</th><th>Nome</th><th>Cognome</th><th>Telefono</th><th>Email</th><th>Owner</th><th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div id="clienteActivities" class="card subtle hidden">
+          <div class="panelHead">
+            <h3 id="clienteActTitle">Attività Cliente</h3>
+            <button id="btnCloseClienteAct" class="btn btn-ghost">Chiudi</button>
+          </div>
+          <div class="row gap">
+            <button id="btnAddActCliente" class="btn">+ Aggiungi Attività</button>
+          </div>
+          <div class="tableWrap">
+            <table class="table" id="tblActClienti">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Tipo</th><th>Esito</th><th>Data</th><th>Ora</th><th>Agente</th><th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- IMMOBILI -->
+      <section id="tab-immobili" class="tabpanel card hidden">
+        <div class="panelHead">
+          <h2>Immobili</h2>
+          <button id="btnOpenAddImmobile" class="btn">+ Aggiungi Immobile</button>
+        </div>
+
+        <div class="filters">
+          <input id="qImmobile" placeholder="Cerca (indirizzo, città, zona)..." />
+          <select id="tipoImmobile">
+            <option value="">Tutti i tipi</option>
+            <option>Normale</option>
+            <option>Traccia</option>
+            <option>Futura Notizia</option>
+            <option>Ex Notizia</option>
+            <option>Notizia</option>
+          </select>
+          <button id="btnSearchImmobili" class="btn btn-ghost">Ricerca</button>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="tblImmobili">
+            <thead>
+              <tr>
+                <th>ID</th><th>Tipo</th><th>Indirizzo</th><th>Città</th><th>Zona</th><th>Tipologia</th><th>MQ</th><th>Responsabile</th><th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div id="immobileActivities" class="card subtle hidden">
+          <div class="panelHead">
+            <h3 id="immobileActTitle">Attività Immobile</h3>
+            <button id="btnCloseImmobileAct" class="btn btn-ghost">Chiudi</button>
+          </div>
+          <div class="row gap">
+            <button id="btnAddActImmobile" class="btn">+ Aggiungi Attività</button>
+          </div>
+          <div class="tableWrap">
+            <table class="table" id="tblActImmobili">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Tipo</th><th>Esito</th><th>Data</th><th>Ora</th><th>Agente</th><th>Note</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CALENDARIO -->
+      <section id="tab-calendario" class="tabpanel card hidden">
+        <div class="panelHead">
+          <h2>Calendario</h2>
+          <button id="btnOpenAddEvento" class="btn">+ Nuovo Evento</button>
+        </div>
+
+        <div class="filters">
+          <input id="qEvento" placeholder="Filtra (titolo/luogo/nota)..." />
+          <select id="statoEvento">
+            <option value="">Tutti gli stati</option>
+            <option>Pianificato</option>
+            <option>Fatto</option>
+            <option>Annullato</option>
+          </select>
+          <button id="btnSearchEventi" class="btn btn-ghost">Aggiorna</button>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="tblEventi">
+            <thead>
+              <tr>
+                <th>ID</th><th>Tipo</th><th>Titolo</th><th>Inizio</th><th>Fine</th><th>Agente</th><th>Cliente</th><th>Immobile</th><th>Stato</th><th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <p class="muted">Creando un evento, il sistema genera automaticamente l’attività cliente e/o immobile.</p>
+      </section>
+    </section>
+  </main>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal hidden">
+    <div class="modalBox card">
+      <div class="panelHead">
+        <h3 id="modalTitle">Titolo</h3>
+        <button id="btnModalClose" class="btn btn-ghost">✕</button>
+      </div>
+      <div id="modalBody"></div>
+      <div id="modalActions" class="row end"></div>
+      <div id="modalMsg" class="muted"></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
