@@ -316,7 +316,6 @@ function openAddActCliente(idCliente){
     }catch(e){ $("modalMsg").textContent=e.message; }
   };
 }
-
 /** =========================
  * IMMOBILI
  * ========================= */
@@ -360,53 +359,45 @@ function ownersSummary(){
   return selectedOwners.map(o=>`${o.nome} ${o.cognome}`.trim()).filter(Boolean).join(", ");
 }
 
-async function openOwnerPicker(){
-  modalOpen("Seleziona Proprietari (max 5)", `
-    <div class="filters">
-      <input id="pQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
-      <button id="pSearch" class="btn btn-ghost" type="button">Cerca</button>
-    </div>
+/**
+ * Widget proprietari DENTRO la modal immobile (NO popup separato)
+ */
+function renderOwnersUI(containerId, summaryId) {
+  const box = document.getElementById(containerId);
+  const summary = document.getElementById(summaryId);
 
-    <div class="card subtle" style="margin-top:12px">
-      <b>Selezionati:</b>
-      <div id="pSelected" class="row"></div>
-    </div>
+  function refreshSelected() {
+    summary.textContent = ownersSummary();
 
-    <div class="tableWrap" style="margin-top:12px">
-      <table class="table">
-        <thead><tr><th>Nome</th><th>Cognome</th><th>Telefono</th><th>Email</th><th></th></tr></thead>
-        <tbody id="pTB"></tbody>
-      </table>
-    </div>
-    <p class="muted" style="margin-top:10px">Clicca “Aggiungi” per selezionare (max 5).</p>
-  `, `<button id="pDone" class="btn">Fatto</button>`);
-
-  const renderSelected = ()=>{
-    const box = $("pSelected");
-    box.innerHTML = "";
-    selectedOwners.forEach((o, idx)=>{
-      const chip = document.createElement("span");
-      chip.className="badge";
-      chip.style.cursor="pointer";
-      chip.textContent = `${o.nome} ${o.cognome} ✕`;
-      chip.onclick = ()=>{
-        selectedOwners.splice(idx,1);
-        renderSelected();
-      };
-      box.appendChild(chip);
-    });
+    const chips = box.querySelector(".ownerChips");
+    chips.innerHTML = "";
     if (!selectedOwners.length) {
-      const s = document.createElement("span");
-      s.className="muted";
-      s.textContent="Nessuno";
-      box.appendChild(s);
+      chips.innerHTML = `<span class="muted">Nessuno</span>`;
+      return;
     }
-  };
+    selectedOwners.forEach((o, idx) => {
+      const chip = document.createElement("span");
+      chip.className = "badge";
+      chip.style.cursor = "pointer";
+      chip.textContent = `${o.nome} ${o.cognome} ✕`;
+      chip.onclick = () => {
+        selectedOwners.splice(idx, 1);
+        refreshSelected();
+      };
+      chips.appendChild(chip);
+    });
+  }
 
-  const render = (rows)=>{
-    const tb = $("pTB");
+  async function doSearch() {
+    const q = box.querySelector(".ownerQ").value.trim();
+    $("modalMsg").textContent = "Cerco…";
+    const rows = await api("searchClienti", { q, tipo: "" });
+    $("modalMsg").textContent = "";
+
+    const tb = box.querySelector(".ownerTB");
     tb.innerHTML = "";
-    rows.forEach(r=>{
+
+    rows.forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${esc(r.NOME)}</td>
@@ -415,36 +406,30 @@ async function openOwnerPicker(){
         <td>${esc(r.EMAIL)}</td>
         <td><button class="btn btn-ghost" type="button">Aggiungi</button></td>
       `;
-      tr.querySelector("button").onclick = ()=>{
-        if (selectedOwners.length >= 5) { $("modalMsg").textContent="Hai già 5 proprietari."; return; }
+      tr.querySelector("button").onclick = () => {
+        if (selectedOwners.length >= 5) { $("modalMsg").textContent = "Max 5 proprietari."; return; }
         const id = String(r.ID_CLIENTE).trim();
-        const already = selectedOwners.some(x=>String(x.id).trim()===id);
-        if (already) { $("modalMsg").textContent="Già selezionato."; return; }
-        selectedOwners.push({ id, nome: r.NOME||"", cognome: r.COGNOME||"" });
-        $("modalMsg").textContent="Aggiunto ✅";
-        renderSelected();
+        if (!id) { $("modalMsg").textContent = "Cliente senza ID."; return; }
+        if (selectedOwners.some(x => String(x.id).trim() === id)) { $("modalMsg").textContent = "Già selezionato."; return; }
+
+        selectedOwners.push({ id, nome: r.NOME || "", cognome: r.COGNOME || "" });
+        $("modalMsg").textContent = "Aggiunto ✅";
+        refreshSelected();
       };
       tb.appendChild(tr);
     });
-  };
+  }
 
-  $("pSearch").onclick = async ()=>{
-    $("modalMsg").textContent = "Cerco…";
-    const q = $("pQ").value.trim();
-    const rows = await api("searchClienti", { q, tipo: "" });
-    render(rows);
-    $("modalMsg").textContent = "";
-  };
+  box.querySelector(".ownerSearchBtn").onclick = doSearch;
 
-  $("pDone").onclick = ()=> modalClose();
-
-  renderSelected();
-  const rows = await api("searchClienti", { q: "", tipo: "" });
-  render(rows);
+  // prima ricerca vuota
+  doSearch();
+  refreshSelected();
 }
 
+/** Aggiungi immobile */
 $("btnOpenAddImmobile").onclick = ()=>{
-  selectedOwners = [];
+  selectedOwners = []; // reset
   modalOpen("Aggiungi Immobile", `
     <div class="grid2">
       <label>Tipo
@@ -479,26 +464,35 @@ $("btnOpenAddImmobile").onclick = ()=>{
       </label>
     </div>
 
-    <div class="card subtle" style="margin-top:12px">
-      <div class="panelHead">
-        <h3 style="margin:0">Proprietari (max 5)</h3>
-        <button id="btnPickOwner" class="btn btn-ghost" type="button">Seleziona clienti</button>
+    <div class="card subtle" style="margin-top:12px" id="ownersBoxAdd">
+      <h3 style="margin:0 0 10px 0">Proprietari (max 5)</h3>
+
+      <div class="filters">
+        <input class="ownerQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
+        <button class="btn btn-ghost ownerSearchBtn" type="button">Cerca</button>
       </div>
+
       <p class="muted">Selezionati: <span id="ownSummary">-</span></p>
+      <div class="row ownerChips"></div>
+
+      <div class="tableWrap" style="margin-top:10px">
+        <table class="table">
+          <thead><tr><th>Nome</th><th>Cognome</th><th>Tel</th><th>Email</th><th></th></tr></thead>
+          <tbody class="ownerTB"></tbody>
+        </table>
+      </div>
     </div>
 
     <label>Note <textarea id="imNote"></textarea></label>
   `, `<button id="imSave" class="btn">Salva</button>`);
 
-  $("btnPickOwner").onclick = async ()=>{
-    await openOwnerPicker();
-    $("ownSummary").textContent = ownersSummary();
-  };
+  renderOwnersUI("ownersBoxAdd", "ownSummary");
 
   $("imSave").onclick = async ()=>{
     try{
       $("modalMsg").textContent="Salvataggio...";
       const owners = selectedOwners.map(o=>o.id);
+
       await api("addImmobile", {
         tipoImmobile: $("imTipo").value,
         responsabile: $("imResp").value,
@@ -508,13 +502,16 @@ $("btnOpenAddImmobile").onclick = ()=>{
         zona: $("imZona").value,
         tipologia: $("imTipologia").value,
         datiCatastali: $("imCat").value,
+
         proprietario1: owners[0] || "",
         proprietario2: owners[1] || "",
         proprietario3: owners[2] || "",
         proprietario4: owners[3] || "",
         proprietario5: owners[4] || "",
+
         note: $("imNote").value
       });
+
       $("modalMsg").textContent="OK ✅";
       await refreshImmobili();
       setTimeout(modalClose, 350);
@@ -524,36 +521,30 @@ $("btnOpenAddImmobile").onclick = ()=>{
 
 let currentImmobileId = null;
 
+/** Azioni riga immobile */
 async function onImmobileAction(act, row){
-  if (act==="viewAct"){
-    currentImmobileId = row.ID_IMMOBILE;
-    $("immobileActTitle").textContent = `Attività Immobile — ${row.INDIRIZZO} (${row.ID_IMMOBILE})`;
-    show($("immobileActivities"), true);
-    await refreshActImmobili();
-  }
-  if (act==="addAct"){
-    currentImmobileId = row.ID_IMMOBILE;
-    openAddActImmobile(row.ID_IMMOBILE);
-  }
   if (act==="owners"){
     modalOpen("Proprietari immobile", `
       <p><b>Immobile:</b> ${esc(row.ID_IMMOBILE)} - ${esc(row.INDIRIZZO)}</p>
       <p><b>Proprietari:</b> ${esc(row.PROPRIETARI_NOMI || "-")}</p>
-      <p class="muted">Per modificarli: apri “Modifica” e re-seleziona i clienti.</p>
     `, `<button class="btn btn-ghost" id="mOk">OK</button>`);
     $("mOk").onclick = modalClose;
+    return;
   }
+
   if (act==="edit"){
+    // carica proprietari dal backend (se presenti)
     selectedOwners = Array.isArray(row.PROPRIETARI_LIST)
       ? row.PROPRIETARI_LIST.map(o=>({id:o.id, nome:o.nome, cognome:o.cognome}))
       : [];
 
-    modalOpen("Modifica Immobile (base)", `
+    modalOpen("Modifica Immobile", `
       <div class="grid2">
         <label>Responsabile <input id="ieResp" value="${esc(row.RESPONSABILE)}"/></label>
         <label>Zona <input id="ieZona" value="${esc(row.ZONA)}"/></label>
 
         <label>Provincia <input id="ieProv" value="${esc(row.PROVINCIA||"")}"/></label>
+
         <label>Tipologia
           <select id="ieTipo">
             <option ${row.TIPOLOGIA==="Casa"?"selected":""}>Casa</option>
@@ -567,26 +558,37 @@ async function onImmobileAction(act, row){
         <label>Dati catastali <input id="ieCat" value="${esc(row.DATI_CATASTALI||"")}"/></label>
       </div>
 
-      <div class="card subtle" style="margin-top:12px">
-        <div class="panelHead">
-          <h3 style="margin:0">Proprietari (max 5)</h3>
-          <button id="btnPickOwner2" class="btn btn-ghost" type="button">Seleziona clienti</button>
+      <div class="card subtle" style="margin-top:12px" id="ownersBoxEdit">
+        <h3 style="margin:0 0 10px 0">Proprietari (max 5)</h3>
+
+        <div class="filters">
+          <input class="ownerQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
+          <button class="btn btn-ghost ownerSearchBtn" type="button">Cerca</button>
         </div>
-        <p class="muted">Selezionati: <span id="ownSummary2">${esc(ownersSummary())}</span></p>
+
+        <p class="muted">Selezionati: <span id="ownSummary2">-</span></p>
+        <div class="row ownerChips"></div>
+
+        <div class="tableWrap" style="margin-top:10px">
+          <table class="table">
+            <thead><tr><th>Nome</th><th>Cognome</th><th>Tel</th><th>Email</th><th></th></tr></thead>
+            <tbody class="ownerTB"></tbody>
+          </table>
+        </div>
       </div>
 
       <label>Note <textarea id="ieNote">${esc(row.NOTE_IMMOBILE||"")}</textarea></label>
     `, `<button id="ieSave" class="btn">Salva</button>`);
 
-    $("btnPickOwner2").onclick = async ()=>{
-      await openOwnerPicker();
-      $("ownSummary2").textContent = ownersSummary();
-    };
+    renderOwnersUI("ownersBoxEdit", "ownSummary2");
+    // aggiorna summary con i proprietari già caricati
+    document.getElementById("ownSummary2").textContent = ownersSummary();
 
     $("ieSave").onclick = async ()=>{
       try{
         $("modalMsg").textContent="Salvataggio...";
         const owners = selectedOwners.map(o=>o.id);
+
         await api("updateImmobileBase", {
           idImmobile: row.ID_IMMOBILE,
           responsabile: $("ieResp").value,
@@ -594,72 +596,35 @@ async function onImmobileAction(act, row){
           provincia: $("ieProv").value,
           tipologia: $("ieTipo").value,
           datiCatastali: $("ieCat").value,
+
           proprietario1: owners[0] || "",
           proprietario2: owners[1] || "",
           proprietario3: owners[2] || "",
           proprietario4: owners[3] || "",
           proprietario5: owners[4] || "",
+
           note: $("ieNote").value
         });
+
         $("modalMsg").textContent="OK ✅";
         await refreshImmobili();
         setTimeout(modalClose, 350);
       }catch(e){ $("modalMsg").textContent=e.message; }
     };
+    return;
   }
-}
 
-$("btnCloseImmobileAct").onclick = ()=> show($("immobileActivities"), false);
-$("btnAddActImmobile").onclick = ()=> openAddActImmobile(currentImmobileId);
-
-async function refreshActImmobili(){
-  const rows = await api("listAttivitaImmobile", { idImmobile: currentImmobileId });
-  const tb = $("tblActImmobili").querySelector("tbody");
-  tb.innerHTML = "";
-  rows.forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(r.ID_ATTIVITA)}</td>
-      <td>${esc(r.TIPO_ATTIVITA)}</td>
-      <td>${esc(r.ESITO)}</td>
-      <td>${esc(r.DATA)}</td>
-      <td>${esc(r.ORA)}</td>
-      <td>${esc(r.AGENTE)}</td>
-      <td>${esc(r.NOTE)}</td>`;
-    tb.appendChild(tr);
-  });
-}
-
-function openAddActImmobile(idImmobile){
-  modalOpen("Aggiungi Attività Immobile", `
-    <p class="muted">Immobile: <b>${esc(idImmobile)}</b></p>
-    <div class="grid2">
-      <label>Tipo
-        <select id="iaTipo">
-          <option>Sopralluogo</option><option>Telefonata proprietario</option><option>Verifica documenti</option>
-          <option>Foto</option><option>Visita cliente</option><option>Altro</option>
-        </select>
-      </label>
-      <label>Esito <input id="iaEsito" /></label>
-      <label>Data <input id="iaData" type="date"/></label>
-      <label>Ora <input id="iaOra" type="time"/></label>
-    </div>
-    <label>Note <textarea id="iaNote"></textarea></label>
-  `, `<button id="iaSave" class="btn">Salva</button>`);
-  $("iaSave").onclick = async ()=>{
-    try{
-      $("modalMsg").textContent="Salvataggio...";
-      await api("addAttivitaImmobile", {
-        idImmobile,
-        tipoAttivita: $("iaTipo").value,
-        esito: $("iaEsito").value,
-        data: $("iaData").value,
-        ora: $("iaOra").value,
-        note: $("iaNote").value
-      });
-      $("modalMsg").textContent="OK ✅";
-      if (currentImmobileId===idImmobile) await refreshActImmobili();
-      setTimeout(modalClose, 350);
-    }catch(e){ $("modalMsg").textContent=e.message; }
-  };
+  // attività (le tue funzioni esistenti)
+  if (act==="viewAct"){
+    currentImmobileId = row.ID_IMMOBILE;
+    $("immobileActTitle").textContent = `Attività Immobile — ${row.INDIRIZZO} (${row.ID_IMMOBILE})`;
+    show($("immobileActivities"), true);
+    await refreshActImmobili();
+    return;
+  }
+  if (act==="addAct"){
+    currentImmobileId = row.ID_IMMOBILE;
+    openAddActImmobile(row.ID_IMMOBILE);
+    return;
+  }
 }
