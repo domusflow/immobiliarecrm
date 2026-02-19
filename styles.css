@@ -20,7 +20,7 @@ body{
   position:sticky;top:0;z-index:10;
 }
 .brand{font-weight:800;letter-spacing:.4px}
-.container{max-width:1100px;margin:18px auto;padding:0 12px}
+.container{max-width:1150px;margin:18px auto;padding:0 12px}
 .card{
   background:rgba(17,26,51,.9);
   border:1px solid var(--line);
@@ -30,7 +30,7 @@ body{
 .card.subtle{background:rgba(17,26,51,.6)}
 .hidden{display:none !important}
 .muted{color:var(--muted)}
-.row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
 .row.end{justify-content:flex-end}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:720px){.grid2{grid-template-columns:1fr}}
@@ -59,14 +59,15 @@ textarea{min-height:90px;resize:vertical}
 .panelHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .tableWrap{overflow:auto;margin-top:12px;border-radius:12px;border:1px solid var(--line)}
-.table{width:100%;border-collapse:collapse;min-width:860px}
+.table{width:100%;border-collapse:collapse;min-width:980px}
 .table th,.table td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 .table th{position:sticky;top:0;background:#0d1430;z-index:2;text-align:left}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
-.badge{padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.85rem}
+.badge{padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.85rem;white-space:nowrap}
 .modal{
   position:fixed;inset:0;background:rgba(0,0,0,.55);
   display:flex;align-items:center;justify-content:center;padding:14px;z-index:50;
 }
-.modalBox{max-width:760px;width:100%}
+.modalBox{max-width:860px;width:100%}
 .gap{gap:10px}
+.small{font-size:.9rem}
