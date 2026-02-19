@@ -37,7 +37,7 @@ document.querySelectorAll(".tab").forEach(btn=>{
     document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     const t = btn.dataset.tab;
-    ["clienti","immobili","calendario"].forEach(x=> show($("tab-"+x), x===t));
+    ["clienti","immobili"].forEach(x=> show($("tab-"+x), x===t));
   });
 });
 
@@ -71,7 +71,6 @@ $("btnLogin").onclick = async ()=>{
 
     await refreshClienti();
     await refreshImmobili();
-    await refreshEventi();
     setMsg("loginMsg", "");
   }catch(e){
     setMsg("loginMsg", e.message);
@@ -86,8 +85,11 @@ $("btnLogout").onclick = ()=>{
   show($("viewLogin"), true);
 };
 
-/** CLIENTI */
+/** =========================
+ * CLIENTI
+ * ========================= */
 $("btnSearchClienti").onclick = refreshClienti;
+
 async function refreshClienti(){
   const q = $("qCliente").value.trim();
   const tipo = $("tipoCliente").value.trim();
@@ -95,6 +97,12 @@ async function refreshClienti(){
   const tb = $("tblClienti").querySelector("tbody");
   tb.innerHTML = "";
   rows.forEach(r=>{
+    const res = [
+      r.RESIDENZA_INDIRIZZO, r.RESIDENZA_CAP, r.RESIDENZA_CITTA, r.RESIDENZA_PROVINCIA
+    ].filter(Boolean).join(" ");
+
+    const immCount = Number(r.IMMOBILI_COUNT || 0);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.ID_CLIENTE)}</td>
@@ -103,11 +111,14 @@ async function refreshClienti(){
       <td>${esc(r.COGNOME)}</td>
       <td>${esc(r.TELEFONO)}</td>
       <td>${esc(r.EMAIL)}</td>
+      <td class="small">${esc(res)}</td>
+      <td>${immCount ? `<span class="badge">Immobili: ${immCount}</span>` : `<span class="badge">Immobili: 0</span>`}</td>
       <td>${esc(r.OWNER_AGENT)}</td>
       <td class="actions">
         <button class="btn btn-ghost" data-act="edit">Modifica</button>
         <button class="btn btn-ghost" data-act="addAct">+ Attività</button>
         <button class="btn btn-ghost" data-act="viewAct">Vedi attività</button>
+        <button class="btn btn-ghost" data-act="props">Vedi immobili</button>
       </td>`;
     tr.querySelectorAll("button").forEach(b=>{
       b.addEventListener("click", ()=> onClienteAction(b.dataset.act, r));
@@ -125,13 +136,27 @@ $("btnOpenAddCliente").onclick = ()=>{
         </select>
       </label>
       <label>Owner Agent <input id="mOwner" placeholder="es. Mario Rossi" /></label>
+
       <label>Nome <input id="mNome" /></label>
       <label>Cognome <input id="mCognome" /></label>
+
       <label>Telefono <input id="mTel" /></label>
       <label>Email <input id="mEmail" /></label>
+
       <label>Città <input id="mCitta" /></label>
       <label>Zona <input id="mZona" /></label>
     </div>
+
+    <div class="card subtle" style="margin-top:12px">
+      <h3 style="margin:0 0 10px 0">Residenza</h3>
+      <div class="grid2">
+        <label>Indirizzo <input id="rInd" /></label>
+        <label>CAP <input id="rCap" /></label>
+        <label>Città <input id="rCitta" /></label>
+        <label>Provincia <input id="rProv" placeholder="es. MI, RM" /></label>
+      </div>
+    </div>
+
     <label>Note <textarea id="mNote"></textarea></label>
   `, `<button id="mSave" class="btn">Salva</button>`);
   $("mSave").onclick = async ()=>{
@@ -146,6 +171,10 @@ $("btnOpenAddCliente").onclick = ()=>{
         email: $("mEmail").value,
         citta: $("mCitta").value,
         zona: $("mZona").value,
+        resIndirizzo: $("rInd").value,
+        resCap: $("rCap").value,
+        resCitta: $("rCitta").value,
+        resProvincia: $("rProv").value,
         note: $("mNote").value
       });
       $("modalMsg").textContent="OK ✅";
@@ -156,11 +185,13 @@ $("btnOpenAddCliente").onclick = ()=>{
 };
 
 let currentClienteId = null;
+
 async function onClienteAction(act, row){
   if (act==="viewAct"){
     currentClienteId = row.ID_CLIENTE;
     $("clienteActTitle").textContent = `Attività Cliente — ${row.NOME} ${row.COGNOME} (${row.ID_CLIENTE})`;
     show($("clienteActivities"), true);
+    show($("clienteImmobiliBox"), false);
     await refreshActClienti();
   }
   if (act==="addAct"){
@@ -174,6 +205,11 @@ async function onClienteAction(act, row){
         <label>Email <input id="eEmail" value="${esc(row.EMAIL)}"/></label>
         <label>Owner <input id="eOwner" value="${esc(row.OWNER_AGENT)}"/></label>
         <label>Zona <input id="eZona" value="${esc(row.ZONA)}"/></label>
+
+        <label>Residenza indirizzo <input id="eRInd" value="${esc(row.RESIDENZA_INDIRIZZO||"")}"/></label>
+        <label>Residenza CAP <input id="eRCap" value="${esc(row.RESIDENZA_CAP||"")}"/></label>
+        <label>Residenza città <input id="eRCitta" value="${esc(row.RESIDENZA_CITTA||"")}"/></label>
+        <label>Residenza provincia <input id="eRProv" value="${esc(row.RESIDENZA_PROVINCIA||"")}"/></label>
       </div>
       <label>Note <textarea id="eNote">${esc(row.NOTE)}</textarea></label>
     `, `<button id="eSave" class="btn">Salva</button>`);
@@ -186,6 +222,10 @@ async function onClienteAction(act, row){
           email: $("eEmail").value,
           owner: $("eOwner").value,
           zona: $("eZona").value,
+          resIndirizzo: $("eRInd").value,
+          resCap: $("eRCap").value,
+          resCitta: $("eRCitta").value,
+          resProvincia: $("eRProv").value,
           note: $("eNote").value
         });
         $("modalMsg").textContent="OK ✅";
@@ -194,9 +234,17 @@ async function onClienteAction(act, row){
       }catch(e){ $("modalMsg").textContent=e.message; }
     };
   }
+  if (act==="props"){
+    currentClienteId = row.ID_CLIENTE;
+    show($("clienteActivities"), true);
+    show($("clienteImmobiliBox"), true);
+    $("clienteImmobiliTitle").textContent = `Immobili di proprietà — ${row.NOME} ${row.COGNOME} (${row.ID_CLIENTE})`;
+    await refreshClienteImmobili(row.ID_CLIENTE);
+  }
 }
 
 $("btnCloseClienteAct").onclick = ()=> show($("clienteActivities"), false);
+$("btnCloseClienteImmobili").onclick = ()=> show($("clienteImmobiliBox"), false);
 $("btnAddActCliente").onclick = ()=> openAddActCliente(currentClienteId);
 
 async function refreshActClienti(){
@@ -213,6 +261,24 @@ async function refreshActClienti(){
       <td>${esc(r.ORA)}</td>
       <td>${esc(r.AGENTE)}</td>
       <td>${esc(r.NOTE)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+async function refreshClienteImmobili(idCliente){
+  const rows = await api("listImmobiliByCliente", { idCliente });
+  const tb = $("tblClienteImmobili").querySelector("tbody");
+  tb.innerHTML = "";
+  rows.forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.ID_IMMOBILE)}</td>
+      <td>${esc(r.TIPO_IMMOBILE)}</td>
+      <td>${esc(r.INDIRIZZO)}</td>
+      <td>${esc(r.CITTA)}</td>
+      <td>${esc(r.PROVINCIA)}</td>
+      <td>${esc(r.ZONA)}</td>
+      <td>${esc(r.TIPOLOGIA)}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -251,8 +317,11 @@ function openAddActCliente(idCliente){
   };
 }
 
-/** IMMOBILI */
+/** =========================
+ * IMMOBILI
+ * ========================= */
 $("btnSearchImmobili").onclick = refreshImmobili;
+
 async function refreshImmobili(){
   const q = $("qImmobile").value.trim();
   const tipo = $("tipoImmobile").value.trim();
@@ -260,18 +329,21 @@ async function refreshImmobili(){
   const tb = $("tblImmobili").querySelector("tbody");
   tb.innerHTML = "";
   rows.forEach(r=>{
+    const owners = (r.PROPRIETARI_NOMI || "").trim() || "-";
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.ID_IMMOBILE)}</td>
       <td><span class="badge">${esc(r.TIPO_IMMOBILE)}</span></td>
       <td>${esc(r.INDIRIZZO)}</td>
       <td>${esc(r.CITTA)}</td>
+      <td>${esc(r.PROVINCIA)}</td>
       <td>${esc(r.ZONA)}</td>
       <td>${esc(r.TIPOLOGIA)}</td>
-      <td>${esc(r.MQ)}</td>
+      <td class="small">${esc(owners)}</td>
       <td>${esc(r.RESPONSABILE)}</td>
       <td class="actions">
         <button class="btn btn-ghost" data-act="edit">Modifica</button>
+        <button class="btn btn-ghost" data-act="owners">Proprietari</button>
         <button class="btn btn-ghost" data-act="addAct">+ Attività</button>
         <button class="btn btn-ghost" data-act="viewAct">Vedi attività</button>
       </td>`;
@@ -282,7 +354,97 @@ async function refreshImmobili(){
   });
 }
 
+let selectedOwners = []; // [{id, nome, cognome}]
+function ownersSummary(){
+  if (!selectedOwners.length) return "-";
+  return selectedOwners.map(o=>`${o.nome} ${o.cognome}`.trim()).filter(Boolean).join(", ");
+}
+
+async function openOwnerPicker(){
+  modalOpen("Seleziona Proprietari (max 5)", `
+    <div class="filters">
+      <input id="pQ" placeholder="Cerca cliente (nome/cognome/telefono/email)..." />
+      <button id="pSearch" class="btn btn-ghost" type="button">Cerca</button>
+    </div>
+
+    <div class="card subtle" style="margin-top:12px">
+      <b>Selezionati:</b>
+      <div id="pSelected" class="row"></div>
+    </div>
+
+    <div class="tableWrap" style="margin-top:12px">
+      <table class="table">
+        <thead><tr><th>Nome</th><th>Cognome</th><th>Telefono</th><th>Email</th><th></th></tr></thead>
+        <tbody id="pTB"></tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top:10px">Clicca “Aggiungi” per selezionare (max 5).</p>
+  `, `<button id="pDone" class="btn">Fatto</button>`);
+
+  const renderSelected = ()=>{
+    const box = $("pSelected");
+    box.innerHTML = "";
+    selectedOwners.forEach((o, idx)=>{
+      const chip = document.createElement("span");
+      chip.className="badge";
+      chip.style.cursor="pointer";
+      chip.textContent = `${o.nome} ${o.cognome} ✕`;
+      chip.onclick = ()=>{
+        selectedOwners.splice(idx,1);
+        renderSelected();
+      };
+      box.appendChild(chip);
+    });
+    if (!selectedOwners.length) {
+      const s = document.createElement("span");
+      s.className="muted";
+      s.textContent="Nessuno";
+      box.appendChild(s);
+    }
+  };
+
+  const render = (rows)=>{
+    const tb = $("pTB");
+    tb.innerHTML = "";
+    rows.forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${esc(r.NOME)}</td>
+        <td>${esc(r.COGNOME)}</td>
+        <td>${esc(r.TELEFONO)}</td>
+        <td>${esc(r.EMAIL)}</td>
+        <td><button class="btn btn-ghost" type="button">Aggiungi</button></td>
+      `;
+      tr.querySelector("button").onclick = ()=>{
+        if (selectedOwners.length >= 5) { $("modalMsg").textContent="Hai già 5 proprietari."; return; }
+        const id = String(r.ID_CLIENTE).trim();
+        const already = selectedOwners.some(x=>String(x.id).trim()===id);
+        if (already) { $("modalMsg").textContent="Già selezionato."; return; }
+        selectedOwners.push({ id, nome: r.NOME||"", cognome: r.COGNOME||"" });
+        $("modalMsg").textContent="Aggiunto ✅";
+        renderSelected();
+      };
+      tb.appendChild(tr);
+    });
+  };
+
+  $("pSearch").onclick = async ()=>{
+    $("modalMsg").textContent = "Cerco…";
+    const q = $("pQ").value.trim();
+    const rows = await api("searchClienti", { q, tipo: "" });
+    render(rows);
+    $("modalMsg").textContent = "";
+  };
+
+  $("pDone").onclick = ()=> modalClose();
+
+  renderSelected();
+  const rows = await api("searchClienti", { q: "", tipo: "" });
+  render(rows);
+}
+
 $("btnOpenAddImmobile").onclick = ()=>{
+  selectedOwners = [];
   modalOpen("Aggiungi Immobile", `
     <div class="grid2">
       <label>Tipo
@@ -291,26 +453,66 @@ $("btnOpenAddImmobile").onclick = ()=>{
           <option>Ex Notizia</option><option>Notizia</option>
         </select>
       </label>
-      <label>Responsabile <input id="imResp" placeholder="es. Mario Rossi"/></label>
+
+      <label>Responsabile
+        <input id="imResp" placeholder="es. Mario Rossi"/>
+      </label>
+
       <label>Indirizzo <input id="imInd" /></label>
       <label>Città <input id="imCitta" /></label>
+
+      <label>Provincia <input id="imProv" placeholder="es. MI, RM"/></label>
       <label>Zona <input id="imZona" /></label>
-      <label>Tipologia <input id="imTipoLogia" /></label>
-      <label>MQ <input id="imMq" type="number" /></label>
+
+      <label>Tipologia
+        <select id="imTipologia">
+          <option>Casa</option>
+          <option>Appartamento</option>
+          <option>Terreno</option>
+          <option>Rustico</option>
+          <option>Palazzina</option>
+        </select>
+      </label>
+
+      <label>Dati catastali
+        <input id="imCat" placeholder="Foglio / Particella / Subalterno..." />
+      </label>
     </div>
+
+    <div class="card subtle" style="margin-top:12px">
+      <div class="panelHead">
+        <h3 style="margin:0">Proprietari (max 5)</h3>
+        <button id="btnPickOwner" class="btn btn-ghost" type="button">Seleziona clienti</button>
+      </div>
+      <p class="muted">Selezionati: <span id="ownSummary">-</span></p>
+    </div>
+
     <label>Note <textarea id="imNote"></textarea></label>
   `, `<button id="imSave" class="btn">Salva</button>`);
+
+  $("btnPickOwner").onclick = async ()=>{
+    await openOwnerPicker();
+    $("ownSummary").textContent = ownersSummary();
+  };
+
   $("imSave").onclick = async ()=>{
     try{
       $("modalMsg").textContent="Salvataggio...";
+      const owners = selectedOwners.map(o=>o.id);
       await api("addImmobile", {
         tipoImmobile: $("imTipo").value,
         responsabile: $("imResp").value,
         indirizzo: $("imInd").value,
         citta: $("imCitta").value,
+        provincia: $("imProv").value,
         zona: $("imZona").value,
-        tipologia: $("imTipoLogia").value,
-        mq: $("imMq").value,
+        tipologia: $("imTipologia").value,
+        datiCatastali: $("imCat").value,
+        proprietario1: owners[0] || "",
+        proprietario2: owners[1] || "",
+        proprietario3: owners[2] || "",
+        proprietario4: owners[3] || "",
+        proprietario5: owners[4] || "",
         note: $("imNote").value
       });
       $("modalMsg").textContent="OK ✅";
@@ -321,6 +523,7 @@ $("btnOpenAddImmobile").onclick = ()=>{
 };
 
 let currentImmobileId = null;
+
 async function onImmobileAction(act, row){
   if (act==="viewAct"){
     currentImmobileId = row.ID_IMMOBILE;
@@ -332,25 +535,70 @@ async function onImmobileAction(act, row){
     currentImmobileId = row.ID_IMMOBILE;
     openAddActImmobile(row.ID_IMMOBILE);
   }
+  if (act==="owners"){
+    modalOpen("Proprietari immobile", `
+      <p><b>Immobile:</b> ${esc(row.ID_IMMOBILE)} - ${esc(row.INDIRIZZO)}</p>
+      <p><b>Proprietari:</b> ${esc(row.PROPRIETARI_NOMI || "-")}</p>
+      <p class="muted">Per modificarli: apri “Modifica” e re-seleziona i clienti.</p>
+    `, `<button class="btn btn-ghost" id="mOk">OK</button>`);
+    $("mOk").onclick = modalClose;
+  }
   if (act==="edit"){
+    selectedOwners = Array.isArray(row.PROPRIETARI_LIST)
+      ? row.PROPRIETARI_LIST.map(o=>({id:o.id, nome:o.nome, cognome:o.cognome}))
+      : [];
+
     modalOpen("Modifica Immobile (base)", `
       <div class="grid2">
         <label>Responsabile <input id="ieResp" value="${esc(row.RESPONSABILE)}"/></label>
         <label>Zona <input id="ieZona" value="${esc(row.ZONA)}"/></label>
-        <label>MQ <input id="ieMq" type="number" value="${esc(row.MQ)}"/></label>
-        <label>Tipologia <input id="ieTipo" value="${esc(row.TIPOLOGIA)}"/></label>
+
+        <label>Provincia <input id="ieProv" value="${esc(row.PROVINCIA||"")}"/></label>
+        <label>Tipologia
+          <select id="ieTipo">
+            <option ${row.TIPOLOGIA==="Casa"?"selected":""}>Casa</option>
+            <option ${row.TIPOLOGIA==="Appartamento"?"selected":""}>Appartamento</option>
+            <option ${row.TIPOLOGIA==="Terreno"?"selected":""}>Terreno</option>
+            <option ${row.TIPOLOGIA==="Rustico"?"selected":""}>Rustico</option>
+            <option ${row.TIPOLOGIA==="Palazzina"?"selected":""}>Palazzina</option>
+          </select>
+        </label>
+
+        <label>Dati catastali <input id="ieCat" value="${esc(row.DATI_CATASTALI||"")}"/></label>
       </div>
-      <label>Note <textarea id="ieNote">${esc(row.NOTE_IMMOBILE)}</textarea></label>
+
+      <div class="card subtle" style="margin-top:12px">
+        <div class="panelHead">
+          <h3 style="margin:0">Proprietari (max 5)</h3>
+          <button id="btnPickOwner2" class="btn btn-ghost" type="button">Seleziona clienti</button>
+        </div>
+        <p class="muted">Selezionati: <span id="ownSummary2">${esc(ownersSummary())}</span></p>
+      </div>
+
+      <label>Note <textarea id="ieNote">${esc(row.NOTE_IMMOBILE||"")}</textarea></label>
     `, `<button id="ieSave" class="btn">Salva</button>`);
+
+    $("btnPickOwner2").onclick = async ()=>{
+      await openOwnerPicker();
+      $("ownSummary2").textContent = ownersSummary();
+    };
+
     $("ieSave").onclick = async ()=>{
       try{
         $("modalMsg").textContent="Salvataggio...";
+        const owners = selectedOwners.map(o=>o.id);
         await api("updateImmobileBase", {
           idImmobile: row.ID_IMMOBILE,
           responsabile: $("ieResp").value,
           zona: $("ieZona").value,
-          mq: $("ieMq").value,
+          provincia: $("ieProv").value,
           tipologia: $("ieTipo").value,
+          datiCatastali: $("ieCat").value,
+          proprietario1: owners[0] || "",
+          proprietario2: owners[1] || "",
+          proprietario3: owners[2] || "",
+          proprietario4: owners[3] || "",
+          proprietario5: owners[4] || "",
           note: $("ieNote").value
         });
         $("modalMsg").textContent="OK ✅";
@@ -414,84 +662,4 @@ function openAddActImmobile(idImmobile){
       setTimeout(modalClose, 350);
     }catch(e){ $("modalMsg").textContent=e.message; }
   };
-}
-
-/** CALENDARIO */
-$("btnSearchEventi").onclick = refreshEventi;
-async function refreshEventi(){
-  const q = $("qEvento").value.trim();
-  const stato = $("statoEvento").value.trim();
-  const rows = await api("listEventi", { q, stato });
-  const tb = $("tblEventi").querySelector("tbody");
-  tb.innerHTML = "";
-  rows.forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(r.ID_EVENTO)}</td>
-      <td><span class="badge">${esc(r.TIPO_EVENTO)}</span></td>
-      <td>${esc(r.TITOLO)}</td>
-      <td>${esc(r.DATA_INIZIO)} ${esc(r.ORA_INIZIO)}</td>
-      <td>${esc(r.DATA_FINE)} ${esc(r.ORA_FINE)}</td>
-      <td>${esc(r.AGENTE)}</td>
-      <td>${esc(r.ID_CLIENTE)}</td>
-      <td>${esc(r.ID_IMMOBILE)}</td>
-      <td><span class="badge">${esc(r.STATO_EVENTO)}</span></td>
-      <td class="actions">
-        <button class="btn btn-ghost" data-act="Fatto">Segna fatto</button>
-        <button class="btn btn-ghost" data-act="Annullato">Annulla</button>
-      </td>`;
-    tr.querySelectorAll("button").forEach(b=>{
-      b.addEventListener("click", ()=> updateEventoStato(r.ID_EVENTO, b.dataset.act));
-    });
-    tb.appendChild(tr);
-  });
-}
-
-$("btnOpenAddEvento").onclick = ()=>{
-  modalOpen("Nuovo Evento (genera attività)", `
-    <div class="grid2">
-      <label>Tipo evento
-        <select id="evTipo">
-          <option>Appuntamento vendita</option><option>Appuntamento acquisizione</option>
-          <option>Follow-up</option><option>Visita</option><option>Altro</option>
-        </select>
-      </label>
-      <label>Titolo <input id="evTit" /></label>
-      <label>ID Cliente (opz.) <input id="evCli" placeholder="CL-000001"/></label>
-      <label>ID Immobile (opz.) <input id="evImm" placeholder="IM-000001"/></label>
-      <label>Data inizio <input id="evDi" type="date"/></label>
-      <label>Ora inizio <input id="evOi" type="time"/></label>
-      <label>Data fine <input id="evDf" type="date"/></label>
-      <label>Ora fine <input id="evOf" type="time"/></label>
-    </div>
-    <label>Luogo <input id="evLuogo" /></label>
-    <label>Note <textarea id="evNote"></textarea></label>
-    <label class="row"><input id="evGen" type="checkbox" checked /> Crea attività automaticamente</label>
-  `, `<button id="evSave" class="btn">Salva evento</button>`);
-  $("evSave").onclick = async ()=>{
-    try{
-      $("modalMsg").textContent="Salvataggio...";
-      await api("addEvento", {
-        tipoEvento: $("evTipo").value,
-        titolo: $("evTit").value,
-        idCliente: $("evCli").value.trim(),
-        idImmobile: $("evImm").value.trim(),
-        dataInizio: $("evDi").value,
-        oraInizio: $("evOi").value,
-        dataFine: $("evDf").value,
-        oraFine: $("evOf").value,
-        luogo: $("evLuogo").value,
-        note: $("evNote").value,
-        generaAttivita: $("evGen").checked ? "SI" : "NO"
-      });
-      $("modalMsg").textContent="OK ✅";
-      await refreshEventi();
-      setTimeout(modalClose, 350);
-    }catch(e){ $("modalMsg").textContent=e.message; }
-  };
-};
-
-async function updateEventoStato(idEvento, stato){
-  await api("updateEventoStato", { idEvento, stato });
-  await refreshEventi();
 }
