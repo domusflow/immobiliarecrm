@@ -41,7 +41,6 @@
       <nav class="tabs">
         <button class="tab active" data-tab="clienti">Clienti</button>
         <button class="tab" data-tab="immobili">Immobili</button>
-        <button class="tab" data-tab="calendario">Calendario</button>
       </nav>
 
       <!-- CLIENTI -->
@@ -66,7 +65,11 @@
           <table class="table" id="tblClienti">
             <thead>
               <tr>
-                <th>ID</th><th>Tipo</th><th>Nome</th><th>Cognome</th><th>Telefono</th><th>Email</th><th>Owner</th><th>Azioni</th>
+                <th>ID</th><th>Tipo</th><th>Nome</th><th>Cognome</th>
+                <th>Telefono</th><th>Email</th>
+                <th>Residenza</th>
+                <th>Immobili</th>
+                <th>Owner</th><th>Azioni</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -91,6 +94,24 @@
               <tbody></tbody>
             </table>
           </div>
+
+          <div id="clienteImmobiliBox" class="card subtle hidden" style="margin-top:12px">
+            <div class="panelHead">
+              <h3 id="clienteImmobiliTitle">Immobili di proprietà</h3>
+              <button id="btnCloseClienteImmobili" class="btn btn-ghost">Chiudi</button>
+            </div>
+            <div class="tableWrap" style="margin-top:12px">
+              <table class="table" id="tblClienteImmobili">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Tipo</th><th>Indirizzo</th><th>Città</th><th>Provincia</th><th>Zona</th><th>Tipologia</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -102,7 +123,7 @@
         </div>
 
         <div class="filters">
-          <input id="qImmobile" placeholder="Cerca (indirizzo, città, zona)..." />
+          <input id="qImmobile" placeholder="Cerca (indirizzo, città, provincia, zona)..." />
           <select id="tipoImmobile">
             <option value="">Tutti i tipi</option>
             <option>Normale</option>
@@ -118,7 +139,10 @@
           <table class="table" id="tblImmobili">
             <thead>
               <tr>
-                <th>ID</th><th>Tipo</th><th>Indirizzo</th><th>Città</th><th>Zona</th><th>Tipologia</th><th>MQ</th><th>Responsabile</th><th>Azioni</th>
+                <th>ID</th><th>Tipo</th><th>Indirizzo</th><th>Città</th><th>Provincia</th><th>Zona</th>
+                <th>Tipologia</th>
+                <th>Proprietari</th>
+                <th>Responsabile</th><th>Azioni</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -144,38 +168,7 @@
             </table>
           </div>
         </div>
-      </section>
 
-      <!-- CALENDARIO -->
-      <section id="tab-calendario" class="tabpanel card hidden">
-        <div class="panelHead">
-          <h2>Calendario</h2>
-          <button id="btnOpenAddEvento" class="btn">+ Nuovo Evento</button>
-        </div>
-
-        <div class="filters">
-          <input id="qEvento" placeholder="Filtra (titolo/luogo/nota)..." />
-          <select id="statoEvento">
-            <option value="">Tutti gli stati</option>
-            <option>Pianificato</option>
-            <option>Fatto</option>
-            <option>Annullato</option>
-          </select>
-          <button id="btnSearchEventi" class="btn btn-ghost">Aggiorna</button>
-        </div>
-
-        <div class="tableWrap">
-          <table class="table" id="tblEventi">
-            <thead>
-              <tr>
-                <th>ID</th><th>Tipo</th><th>Titolo</th><th>Inizio</th><th>Fine</th><th>Agente</th><th>Cliente</th><th>Immobile</th><th>Stato</th><th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <p class="muted">Creando un evento, il sistema genera automaticamente l’attività cliente e/o immobile.</p>
       </section>
     </section>
   </main>
